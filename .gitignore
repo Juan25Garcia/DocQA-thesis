@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.ipynb_checkpoints/
+
+data/pdfs/*
+data/pages/*
+data/index/*
+outputs/retrieval_results/*
+outputs/answers/*
+
+!data/pdfs/.gitkeep
+!data/pages/.gitkeep
+!data/index/.gitkeep
+!outputs/retrieval_results/.gitkeep
+!outputs/answers/.gitkeep

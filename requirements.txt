@@ -1,0 +1,12 @@
+pdf2image>=1.17.0
+pillow>=10.0.0
+tqdm>=4.66.0
+numpy>=1.26.0
+pandas>=2.0.0
+faiss-cpu>=1.8.0
+torch>=2.2.0
+torchvision>=0.17.0
+transformers>=4.46.0
+accelerate>=0.30.0
+qwen-vl-utils>=0.0.8
+python-dotenv>=1.0.0
