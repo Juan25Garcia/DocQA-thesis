@@ -1,45 +1,90 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import Protocol, Sequence
 
-from src.models import AnswerResult, RetrievedEvidence
+from src.models import (
+    AnswerResult,
+    RetrievedEvidence,
+)
+
+
+class RetrieverProtocol(Protocol):
+    @property
+    def name(self) -> str:
+        ...
+
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 3,
+    ) -> list[RetrievedEvidence]:
+        ...
+
+
+class GeneratorProtocol(Protocol):
+    @property
+    def name(self) -> str:
+        ...
+
+    def generate(
+        self,
+        question: str,
+        evidence: Sequence[RetrievedEvidence],
+    ) -> AnswerResult:
+        ...
 
 
 class DocumentQAPipeline:
     def __init__(
         self,
-        retriever,
-        answer_function: Callable[
-            [str, list[RetrievedEvidence]],
-            str,
-        ],
-        generator_name: str = "baseline_answer",
-    ):
+        retriever: RetrieverProtocol,
+        generator: GeneratorProtocol,
+    ) -> None:
         self.retriever = retriever
-        self.answer_function = answer_function
-        self.generator_name = generator_name
+        self.generator = generator
+
+    def retrieve(
+        self,
+        question: str,
+        top_k: int = 3,
+    ) -> list[RetrievedEvidence]:
+        normalized_question = self._validate_question(
+            question
+        )
+
+        if top_k <= 0:
+            raise ValueError(
+                "top_k must be greater than zero."
+            )
+
+        return self.retriever.retrieve(
+            query=normalized_question,
+            top_k=top_k,
+        )
 
     def ask(
         self,
         question: str,
         top_k: int = 3,
     ) -> AnswerResult:
-        normalized_question = question.strip()
+        normalized_question = self._validate_question(
+            question
+        )
 
-        if not normalized_question:
-            raise ValueError("Question cannot be empty.")
-
-        evidence = self.retriever.retrieve(
-            normalized_question,
-            top_k,
+        evidence = self.retrieve(
+            question=normalized_question,
+            top_k=top_k,
         )
 
         if not evidence:
             return AnswerResult(
                 question=normalized_question,
-                answer="No relevant evidence was found.",
+                answer=(
+                    "No relevant evidence was found "
+                    "in the indexed documents."
+                ),
                 evidence=[],
-                generator_name=self.generator_name,
+                generator_name=self.generator.name,
                 metadata={
                     "retriever": self.retriever.name,
                     "top_k": top_k,
@@ -47,18 +92,29 @@ class DocumentQAPipeline:
                 },
             )
 
-        answer = self.answer_function(
-            normalized_question,
-            evidence,
+        result = self.generator.generate(
+            question=normalized_question,
+            evidence=evidence,
         )
 
-        return AnswerResult(
-            question=normalized_question,
-            answer=answer,
-            evidence=evidence,
-            generator_name=self.generator_name,
-            metadata={
+        result.metadata.update(
+            {
                 "retriever": self.retriever.name,
                 "top_k": top_k,
-            },
+            }
         )
+
+        return result
+
+    @staticmethod
+    def _validate_question(
+        question: str,
+    ) -> str:
+        normalized_question = question.strip()
+
+        if not normalized_question:
+            raise ValueError(
+                "Question cannot be empty."
+            )
+
+        return normalized_question

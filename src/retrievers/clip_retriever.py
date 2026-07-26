@@ -6,20 +6,46 @@ from pathlib import Path
 from src.models import DocumentNode, RetrievedEvidence
 
 
+ClipSearchFunction = Callable[
+    [str, int],
+    list[dict],
+]
+
+
 class ClipRetrieverAdapter:
+    """
+    Adapter around the existing retrieve_pages function.
+
+    The existing CLIP retriever returns dictionaries such as:
+
+    {
+        "doc_id": "invoice",
+        "page_num": 2,
+        "image_path": "...",
+        "rank": 1,
+        "score": 0.94
+    }
+
+    This adapter converts them into RetrievedEvidence objects.
+    """
+
     def __init__(
         self,
         nodes: list[DocumentNode],
-        search_function: Callable[
-            [str, int],
-            list[dict],
-        ],
-    ):
+        search_function: ClipSearchFunction,
+    ) -> None:
+        self.search_function = search_function
+
         self.nodes_by_id = {
             node.node_id: node
             for node in nodes
         }
-        self.search_function = search_function
+
+        self.nodes_by_image_path = {
+            self._normalize_path(node.image_path): node
+            for node in nodes
+            if node.image_path is not None
+        }
 
     @property
     def name(self) -> str:
@@ -36,7 +62,9 @@ class ClipRetrieverAdapter:
             raise ValueError("Query cannot be empty.")
 
         if top_k <= 0:
-            raise ValueError("top_k must be greater than zero.")
+            raise ValueError(
+                "top_k must be greater than zero."
+            )
 
         raw_results = self.search_function(
             normalized_query,
@@ -45,28 +73,29 @@ class ClipRetrieverAdapter:
 
         evidence: list[RetrievedEvidence] = []
 
-        for rank, raw_result in enumerate(
+        for fallback_rank, raw_result in enumerate(
             raw_results,
             start=1,
         ):
             node = self._resolve_node(raw_result)
 
+            rank = int(
+                raw_result.get(
+                    "rank",
+                    fallback_rank,
+                )
+            )
+
+            score = float(raw_result["score"])
+
             evidence.append(
                 RetrievedEvidence(
                     node=node,
-                    score=float(raw_result["score"]),
+                    score=score,
                     rank=rank,
                     retriever_name=self.name,
                     metadata={
-                        key: value
-                        for key, value in raw_result.items()
-                        if key not in {
-                            "node_id",
-                            "score",
-                            "image_path",
-                            "page_number",
-                            "document_id",
-                        }
+                        "original_result": dict(raw_result),
                     },
                 )
             )
@@ -77,38 +106,51 @@ class ClipRetrieverAdapter:
         self,
         result: dict,
     ) -> DocumentNode:
-        node_id = result.get("node_id")
+        document_id = str(
+            result.get("doc_id", "")
+        ).strip()
 
-        if node_id and node_id in self.nodes_by_id:
-            return self.nodes_by_id[node_id]
+        page_value = result.get("page_num")
 
-        document_id = result.get("document_id")
-        page_number = result.get("page_number")
+        if document_id and page_value is not None:
+            page_number = int(page_value)
 
-        if document_id is not None and page_number is not None:
-            generated_id = (
-                f"{Path(str(document_id)).stem}"
-                f":page:{int(page_number)}"
+            node_id = (
+                f"{document_id}:page:{page_number}"
             )
 
-            if generated_id in self.nodes_by_id:
-                return self.nodes_by_id[generated_id]
+            node = self.nodes_by_id.get(node_id)
 
-        image_path = result.get("image_path")
+            if node is not None:
+                return node
 
-        if image_path:
-            normalized_path = str(image_path).replace("\\", "/")
+        image_path_value = result.get("image_path")
 
-            for node in self.nodes_by_id.values():
-                if node.image_path is None:
-                    continue
+        if image_path_value:
+            normalized_path = self._normalize_path(
+                Path(str(image_path_value))
+            )
 
-                node_path = str(node.image_path).replace("\\", "/")
+            node = self.nodes_by_image_path.get(
+                normalized_path
+            )
 
-                if node_path == normalized_path:
-                    return node
+            if node is not None:
+                return node
 
         raise KeyError(
-            "The retrieved result could not be associated "
-            "with a metadata node."
+            "A CLIP retrieval result could not be matched "
+            "to a DocumentNode. "
+            f"Result: {result}"
         )
+
+    @staticmethod
+    def _normalize_path(
+        path: Path | None,
+    ) -> str:
+        if path is None:
+            return ""
+
+        return str(
+            path.resolve()
+        ).replace("\\", "/").lower()

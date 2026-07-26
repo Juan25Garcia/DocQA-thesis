@@ -1,17 +1,35 @@
 import argparse
 
-from src.answer import QwenVLAnswerer
-from src.retrieve_clip import retrieve_pages
+from src.generators.qwen_generator import (
+    QwenAnswerGenerator,
+)
+from src.parsers.page_parser import PageMetadataParser
+from src.pipeline import DocumentQAPipeline
+from src.retrieve_clip import (
+    CLIP_METADATA_PATH,
+    retrieve_pages,
+)
+from src.retrievers.clip_retriever import (
+    ClipRetrieverAdapter,
+)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run the CLIP and Qwen-based "
+            "Document QA baseline."
+        )
+    )
 
     parser.add_argument(
         "--question",
         type=str,
         required=True,
-        help="Question to ask over the document collection.",
+        help=(
+            "Question to ask over the "
+            "document collection."
+        ),
     )
 
     parser.add_argument(
@@ -24,52 +42,92 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--retrieval-only",
         action="store_true",
-        help="Only retrieve pages without generating an answer.",
+        help=(
+            "Only retrieve pages without "
+            "generating an answer."
+        ),
     )
 
     return parser.parse_args()
 
 
+def build_retriever() -> ClipRetrieverAdapter:
+    parser = PageMetadataParser(
+        metadata_path=CLIP_METADATA_PATH
+    )
+
+    nodes = parser.parse_all()
+
+    return ClipRetrieverAdapter(
+        nodes=nodes,
+        search_function=retrieve_pages,
+    )
+
+
+def print_evidence(evidence) -> None:
+    print("\nTop retrieved pages:")
+
+    if not evidence:
+        print("No pages were retrieved.")
+        return
+
+    for item in evidence:
+        node = item.node
+
+        print(
+            f"{item.rank}. "
+            f"{node.document_id} "
+            f"| page {node.page_number} "
+            f"| score={item.score:.4f} "
+            f"| {node.image_path}"
+        )
+
+
 def main() -> None:
     args = parse_args()
 
-    print("\nRetrieving pages...")
-
-    retrieved_pages = retrieve_pages(
-        query=args.question,
-        top_k=args.top_k,
-    )
+    retriever = build_retriever()
 
     print("\nQuestion:")
     print(args.question)
 
-    print("\nTop retrieved pages:")
-
-    for item in retrieved_pages:
-        print(
-            f"{item['rank']}. {item['doc_id']} | page {item['page_num']} "
-            f"| score={item['score']:.4f} | {item['image_path']}"
-        )
+    print("\nRetrieving pages...")
 
     if args.retrieval_only:
+        evidence = retriever.retrieve(
+            query=args.question,
+            top_k=args.top_k,
+        )
+
+        print_evidence(evidence)
         return
 
-    image_paths = [item["image_path"] for item in retrieved_pages]
+    generator = QwenAnswerGenerator()
 
-    print("\nGenerating answer...")
-
-    answerer = QwenVLAnswerer()
-    answer = answerer.answer(
-        question=args.question,
-        image_paths=image_paths,
+    pipeline = DocumentQAPipeline(
+        retriever=retriever,
+        generator=generator,
     )
 
+    result = pipeline.ask(
+        question=args.question,
+        top_k=args.top_k,
+    )
+
+    print_evidence(result.evidence)
+
     print("\nAnswer:")
-    print(answer)
+    print(result.answer)
 
     print("\nEvidence pages:")
-    for item in retrieved_pages:
-        print(f"- {item['doc_id']} | page {item['page_num']}")
+
+    for item in result.evidence:
+        node = item.node
+
+        print(
+            f"- {node.document_id} "
+            f"| page {node.page_number}"
+        )
 
 
 if __name__ == "__main__":

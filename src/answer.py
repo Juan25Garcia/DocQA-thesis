@@ -2,29 +2,46 @@ from pathlib import Path
 
 import torch
 from qwen_vl_utils import process_vision_info
-from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
-
+from transformers import (
+    AutoProcessor,
+    Qwen2VLForConditionalGeneration,
+)
 
 MODEL_NAME = "Qwen/Qwen2-VL-2B-Instruct"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class QwenVLAnswerer:
-    def __init__(self, model_name: str = MODEL_NAME) -> None:
+    def __init__(
+        self,
+        model_name: str = MODEL_NAME,
+    ) -> None:
         self.model_name = model_name
 
-        dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        dtype = (
+            torch.float16
+            if torch.cuda.is_available()
+            else torch.float32
+        )
 
-        self.model = Qwen2VLForConditionalGeneration.from_pretrained(
-            model_name,
-            torch_dtype=dtype,
-            device_map="auto" if torch.cuda.is_available() else None,
+        self.model = (
+            Qwen2VLForConditionalGeneration.from_pretrained(
+                model_name,
+                torch_dtype=dtype,
+                device_map=(
+                    "auto"
+                    if torch.cuda.is_available()
+                    else None
+                ),
+            )
         )
 
         if not torch.cuda.is_available():
             self.model.to(DEVICE)
 
-        self.processor = AutoProcessor.from_pretrained(model_name)
+        self.processor = AutoProcessor.from_pretrained(
+            model_name
+        )
 
     def answer(
         self,
@@ -38,7 +55,9 @@ class QwenVLAnswerer:
             content.append(
                 {
                     "type": "image",
-                    "image": str(Path(image_path).resolve()),
+                    "image": str(
+                        Path(image_path).resolve()
+                    ),
                 }
             )
 
@@ -47,8 +66,10 @@ class QwenVLAnswerer:
                 "type": "text",
                 "text": (
                     "You are a document question answering assistant. "
-                    "Answer the question using only the information visible in the provided document page images. "
-                    "If the answer is not visible, say: 'The answer is not found in the provided pages.'\n\n"
+                    "Answer the question using only the information "
+                    "visible in the provided document page images. "
+                    "If the answer is not visible, say: "
+                    "'The answer is not found in the provided pages.'\n\n"
                     f"Question: {question}"
                 ),
             }
@@ -67,7 +88,9 @@ class QwenVLAnswerer:
             add_generation_prompt=True,
         )
 
-        image_inputs, video_inputs = process_vision_info(messages)
+        image_inputs, video_inputs = process_vision_info(
+            messages
+        )
 
         inputs = self.processor(
             text=[text],
@@ -85,7 +108,10 @@ class QwenVLAnswerer:
 
         generated_ids_trimmed = [
             output_ids[len(input_ids):]
-            for input_ids, output_ids in zip(inputs.input_ids, generated_ids)
+            for input_ids, output_ids in zip(
+                inputs.input_ids,
+                generated_ids,
+            )
         ]
 
         output_text = self.processor.batch_decode(

@@ -1,114 +1,110 @@
 from __future__ import annotations
 
-import csv
 from pathlib import Path
+
+import pandas as pd
 
 from src.models import DocumentNode, NodeType
 
 
 class PageMetadataParser:
-    def __init__(self, metadata_csv: Path):
-        self.metadata_csv = metadata_csv
+    """
+    Converts the existing page metadata CSV into DocumentNode objects.
+
+    Expected columns:
+        doc_id
+        page_num
+        image_path
+    """
+
+    REQUIRED_COLUMNS = {
+        "doc_id",
+        "page_num",
+        "image_path",
+    }
+
+    def __init__(self, metadata_path: Path) -> None:
+        self.metadata_path = metadata_path
 
     @property
     def name(self) -> str:
         return "page_metadata_parser"
 
     def parse_all(self) -> list[DocumentNode]:
-        if not self.metadata_csv.exists():
+        if not self.metadata_path.exists():
             raise FileNotFoundError(
-                f"Metadata file not found: {self.metadata_csv}"
+                f"Metadata file not found: {self.metadata_path}"
             )
 
-        nodes: list[DocumentNode] = []
+        metadata = pd.read_csv(self.metadata_path)
 
-        with self.metadata_csv.open(
-            "r",
-            encoding="utf-8-sig",
-            newline="",
-        ) as csv_file:
-            reader = csv.DictReader(csv_file)
+        missing_columns = self.REQUIRED_COLUMNS.difference(
+            metadata.columns
+        )
 
-            if reader.fieldnames is None:
-                raise ValueError("Metadata CSV has no headers.")
+        if missing_columns:
+            missing = ", ".join(sorted(missing_columns))
 
-            for row_number, row in enumerate(reader, start=2):
-                node = self._row_to_node(row, row_number)
-                nodes.append(node)
+            raise ValueError(
+                "The metadata CSV is missing required columns: "
+                f"{missing}"
+            )
+
+        nodes = [
+            self._row_to_node(row)
+            for _, row in metadata.iterrows()
+        ]
+
+        if not nodes:
+            raise ValueError(
+                f"No page records were found in {self.metadata_path}"
+            )
 
         return nodes
 
     def _row_to_node(
         self,
-        row: dict[str, str],
-        row_number: int,
+        row: pd.Series,
     ) -> DocumentNode:
-        document_id = self._get_first_value(
-            row,
-            "document_id",
-            "document_name",
-            "pdf_name",
-            "document_path",
-        )
-
-        if not document_id:
-            raise ValueError(
-                f"Missing document identifier at row {row_number}."
-            )
-
-        document_id = Path(document_id).stem
-
-        page_value = self._get_first_value(
-            row,
-            "page_number",
-            "page",
-            "page_index",
-        )
-
-        if not page_value:
-            raise ValueError(
-                f"Missing page number at row {row_number}."
-            )
-
-        page_number = int(page_value)
-
-        image_value = self._get_first_value(
-            row,
-            "image_path",
-            "image",
-            "page_image",
-        )
-
-        text = self._get_first_value(
-            row,
-            "text",
-            "ocr_text",
-            "content",
+        document_id = str(row["doc_id"]).strip()
+        page_number = int(row["page_num"])
+        image_path = self._resolve_image_path(
+            str(row["image_path"])
         )
 
         return DocumentNode(
-            node_id=f"{document_id}:page:{page_number}",
+            node_id=self.build_node_id(
+                document_id=document_id,
+                page_number=page_number,
+            ),
             document_id=document_id,
             node_type=NodeType.PAGE,
             page_number=page_number,
-            text=text,
-            image_path=Path(image_value) if image_value else None,
+            image_path=image_path,
             parent_id=document_id,
             metadata={
                 "source": self.name,
-                "csv_row": row_number,
+                "doc_id": document_id,
+                "page_num": page_number,
             },
         )
 
+    def _resolve_image_path(
+        self,
+        image_path_value: str,
+    ) -> Path:
+        image_path = Path(image_path_value)
+
+        if image_path.is_absolute():
+            return image_path
+
+        project_root = Path(__file__).resolve().parents[2]
+
+        return project_root / image_path
+
     @staticmethod
-    def _get_first_value(
-        row: dict[str, str],
-        *keys: str,
+    def build_node_id(
+        document_id: str,
+        page_number: int,
     ) -> str:
-        for key in keys:
-            value = row.get(key, "")
-
-            if value and value.strip():
-                return value.strip()
-
-        return ""
+        return f"{document_id}:page:{page_number}"
