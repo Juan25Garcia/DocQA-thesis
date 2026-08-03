@@ -15,3 +15,5 @@ outputs/answers/*
 !data/index/.gitkeep
 !outputs/retrieval_results/.gitkeep
 !outputs/answers/.gitkeep
+# Generated structured document outputs
+data/structured/*.json

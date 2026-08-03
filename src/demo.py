@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import argparse
+from pathlib import Path
+from typing import Sequence
 
 from src.generators.qwen_generator import (
     QwenAnswerGenerator,
 )
+from src.models import DocumentNode, RetrievedEvidence
+from src.parsers.docling_parser import DoclingParser
 from src.parsers.page_parser import PageMetadataParser
 from src.pipeline import DocumentQAPipeline
 from src.retrieve_clip import (
@@ -17,8 +23,8 @@ from src.retrievers.clip_retriever import (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Run the CLIP and Qwen-based "
-            "Document QA baseline."
+            "Run the CLIP and Qwen-based Document QA baseline "
+            "with optional Docling structural parsing."
         )
     )
 
@@ -37,6 +43,16 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=3,
         help="Number of retrieved pages.",
+    )
+
+    parser.add_argument(
+        "--document",
+        type=Path,
+        help=(
+            "Optional document to parse with Docling before "
+            "retrieval. Parsed DocumentNode objects remain "
+            "in memory."
+        ),
     )
 
     parser.add_argument(
@@ -64,7 +80,9 @@ def build_retriever() -> ClipRetrieverAdapter:
     )
 
 
-def print_evidence(evidence) -> None:
+def print_evidence(
+    evidence: Sequence[RetrievedEvidence],
+) -> None:
     print("\nTop retrieved pages:")
 
     if not evidence:
@@ -83,10 +101,59 @@ def print_evidence(evidence) -> None:
         )
 
 
+def print_structured_summary(
+    nodes: Sequence[DocumentNode],
+) -> None:
+    print("\nStructured document:")
+
+    if not nodes:
+        print("No structured nodes were generated.")
+        return
+
+    node_counts: dict[str, int] = {}
+
+    for node in nodes:
+        node_type = node.node_type.value
+        node_counts[node_type] = (
+            node_counts.get(node_type, 0) + 1
+        )
+
+    print(f"Total nodes: {len(nodes)}")
+
+    for node_type, count in sorted(
+        node_counts.items()
+    ):
+        print(f"- {node_type}: {count}")
+
+
 def main() -> None:
     args = parse_args()
 
     retriever = build_retriever()
+    document_parser = DoclingParser()
+
+    generator = (
+        None
+        if args.retrieval_only
+        else QwenAnswerGenerator()
+    )
+
+    pipeline = DocumentQAPipeline(
+        retriever=retriever,
+        generator=generator,
+        document_parser=document_parser,
+    )
+
+    if args.document is not None:
+        print("\nParsing structured document...")
+
+        structured_nodes = pipeline.ingest(
+            args.document
+        )
+
+        print_structured_summary(
+            structured_nodes
+        )
 
     print("\nQuestion:")
     print(args.question)
@@ -94,20 +161,13 @@ def main() -> None:
     print("\nRetrieving pages...")
 
     if args.retrieval_only:
-        evidence = retriever.retrieve(
-            query=args.question,
+        evidence = pipeline.retrieve(
+            question=args.question,
             top_k=args.top_k,
         )
 
         print_evidence(evidence)
         return
-
-    generator = QwenAnswerGenerator()
-
-    pipeline = DocumentQAPipeline(
-        retriever=retriever,
-        generator=generator,
-    )
 
     result = pipeline.ask(
         question=args.question,
@@ -128,6 +188,11 @@ def main() -> None:
             f"- {node.document_id} "
             f"| page {node.page_number}"
         )
+
+    print("\nPipeline metadata:")
+
+    for key, value in result.metadata.items():
+        print(f"- {key}: {value}")
 
 
 if __name__ == "__main__":
