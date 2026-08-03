@@ -126,6 +126,42 @@ def print_structured_summary(
         print(f"- {node_type}: {count}")
 
 
+def print_hierarchical_index_summary(
+    pipeline: DocumentQAPipeline,
+) -> None:
+    index = pipeline.document_index
+
+    print("\nHierarchical index:")
+
+    if index is None:
+        print("No hierarchical index was built.")
+        return
+
+    print(f"Indexed nodes: {index.node_count}")
+    print(
+        "Documents: "
+        f"{', '.join(index.document_ids)}"
+    )
+
+    for document_id in index.document_ids:
+        root = index.get_root(document_id)
+        pages = index.get_children(root.node_id)
+        content_nodes = index.get_content_nodes(document_id)
+
+        print(f"- {document_id}:")
+        print(f"  pages: {len(pages)}")
+        print(f"  content nodes: {len(content_nodes)}")
+
+        counts: dict[str, int] = {}
+
+        for node in content_nodes:
+            node_type = node.node_type.value
+            counts[node_type] = counts.get(node_type, 0) + 1
+
+        for node_type, count in sorted(counts.items()):
+            print(f"  {node_type}: {count}")
+
+
 def main() -> None:
     args = parse_args()
 
@@ -154,6 +190,10 @@ def main() -> None:
         print_structured_summary(
             structured_nodes
         )
+
+    print_hierarchical_index_summary(
+    pipeline
+)
 
     print("\nQuestion:")
     print(args.question)

@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Protocol, Sequence
 
+from src.indexing import HierarchicalDocumentIndex
 from src.models import (
     AnswerResult,
     DocumentNode,
+    NodeType,
     RetrievedEvidence,
 )
 
@@ -55,30 +57,18 @@ class DocumentQAPipeline:
         self.generator = generator
         self.document_parser = document_parser
 
-        # Structured nodes remain in memory.
-        # The hierarchical index will consume them in Issue #4.
         self.document_nodes: list[DocumentNode] = []
+        self.document_index: HierarchicalDocumentIndex | None = None
 
     def ingest(
         self,
         document_path: Path | str,
     ) -> list[DocumentNode]:
         """
-        Parse a document into the internal DocumentNode representation.
+        Parse and structurally index a document.
 
-        The nodes are kept in memory and returned to the caller. No
-        intermediate JSON file is required.
-
-        Args:
-            document_path: Path to the source PDF or supported document.
-
-        Returns:
-            Parsed DocumentNode objects.
-
-        Raises:
-            RuntimeError: If no document parser was configured.
-            FileNotFoundError: If the input document does not exist.
-            ValueError: If the input path is not a file.
+        The parsed DocumentNode objects and the hierarchical index are kept
+        in memory. No intermediate JSON file is required.
         """
         if self.document_parser is None:
             raise RuntimeError(
@@ -97,9 +87,14 @@ class DocumentQAPipeline:
                 f"Input path is not a file: {normalized_path}"
             )
 
-        nodes = self.document_parser.parse(normalized_path)
+        nodes = list(
+            self.document_parser.parse(normalized_path)
+        )
 
-        self.document_nodes = list(nodes)
+        index = HierarchicalDocumentIndex(nodes)
+
+        self.document_nodes = nodes
+        self.document_index = index
 
         return self.document_nodes
 
@@ -128,13 +123,6 @@ class DocumentQAPipeline:
         top_k: int = 3,
         document_path: Path | str | None = None,
     ) -> AnswerResult:
-        """
-        Answer a question using the configured retriever and generator.
-
-        When document_path is supplied, the document is first parsed with
-        Docling and the resulting DocumentNode objects are kept in memory.
-        The current baseline still retrieves pages using CLIP.
-        """
         normalized_question = self._validate_question(
             question
         )
@@ -193,48 +181,121 @@ class DocumentQAPipeline:
 
         return result
 
-    def get_nodes_by_type(
+    def get_structured_node(
         self,
-        node_type: str,
+        node_id: str,
+    ) -> DocumentNode:
+        return self._require_document_index().get_node(
+            node_id
+        )
+
+    def get_structured_root(
+        self,
+        document_id: str,
+    ) -> DocumentNode:
+        return self._require_document_index().get_root(
+            document_id
+        )
+
+    def get_structured_children(
+        self,
+        node_id: str,
     ) -> list[DocumentNode]:
-        """
-        Return in-memory structured nodes matching a NodeType value.
+        return self._require_document_index().get_children(
+            node_id
+        )
 
-        Example:
-            pipeline.get_nodes_by_type("table")
-        """
-        normalized_type = node_type.strip().lower()
+    def get_structured_ancestors(
+        self,
+        node_id: str,
+        include_self: bool = False,
+    ) -> list[DocumentNode]:
+        return self._require_document_index().get_ancestors(
+            node_id=node_id,
+            include_self=include_self,
+        )
 
-        return [
-            node
-            for node in self.document_nodes
-            if node.node_type.value == normalized_type
-        ]
+    def get_structured_descendants(
+        self,
+        node_id: str,
+        include_self: bool = False,
+        max_depth: int | None = None,
+    ) -> list[DocumentNode]:
+        return self._require_document_index().get_descendants(
+            node_id=node_id,
+            include_self=include_self,
+            max_depth=max_depth,
+        )
+
+    def get_structured_nodes_by_type(
+        self,
+        node_type: NodeType,
+        document_id: str | None = None,
+    ) -> list[DocumentNode]:
+        return self._require_document_index().get_nodes_by_type(
+            node_type=node_type,
+            document_id=document_id,
+        )
+
+    def get_structured_page_nodes(
+        self,
+        document_id: str,
+        page_number: int,
+    ) -> list[DocumentNode]:
+        return self._require_document_index().get_page_nodes(
+            document_id=document_id,
+            page_number=page_number,
+        )
+
+    def get_structured_content_nodes(
+        self,
+        document_id: str | None = None,
+    ) -> list[DocumentNode]:
+        return self._require_document_index().get_content_nodes(
+            document_id=document_id,
+        )
 
     def clear_document_nodes(self) -> None:
-        """Remove the currently ingested structured document."""
         self.document_nodes.clear()
+        self.document_index = None
 
-    def _structured_metadata(self) -> dict[str, object]:
-        if not self.document_nodes:
+    def _require_document_index(
+        self,
+    ) -> HierarchicalDocumentIndex:
+        if self.document_index is None:
+            raise RuntimeError(
+                "No hierarchical document index is loaded. "
+                "Call ingest() first."
+            )
+
+        return self.document_index
+
+    def _structured_metadata(
+        self,
+    ) -> dict[str, object]:
+        if (
+            not self.document_nodes
+            or self.document_index is None
+        ):
             return {
                 "structured_document_loaded": False,
                 "structured_node_count": 0,
+                "hierarchical_index_loaded": False,
+                "hierarchical_index_node_count": 0,
             }
-
-        document_ids = sorted(
-            {
-                node.document_id
-                for node in self.document_nodes
-            }
-        )
 
         return {
             "structured_document_loaded": True,
             "structured_node_count": len(
                 self.document_nodes
             ),
-            "structured_document_ids": document_ids,
+            "structured_document_ids": (
+                self.document_index.document_ids
+            ),
+            "hierarchical_index_loaded": True,
+            "hierarchical_index_node_count": (
+                self.document_index.node_count
+            ),
         }
 
     @staticmethod
