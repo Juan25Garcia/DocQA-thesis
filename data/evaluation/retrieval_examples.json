@@ -1,0 +1,188 @@
+[
+  {
+    "id": "expense_001",
+    "question": "What is the total expense?",
+    "document_id": "sample_business_expense_voucher",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_business_expense_voucher:table:1"
+    ]
+  },
+  {
+    "id": "expense_002",
+    "question": "How much was spent on lodging?",
+    "document_id": "sample_business_expense_voucher",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_business_expense_voucher:table:1"
+    ]
+  },
+  {
+    "id": "expense_003",
+    "question": "What is the voucher ID?",
+    "document_id": "sample_business_expense_voucher",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_business_expense_voucher:table:0"
+    ]
+  },
+  {
+    "id": "expense_004",
+    "question": "Which department does the employee belong to?",
+    "document_id": "sample_business_expense_voucher",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_business_expense_voucher:table:0"
+    ]
+  },
+
+  {
+    "id": "invoice_001",
+    "question": "What is the total amount?",
+    "document_id": "sample_invoice_acme",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_invoice_acme:table:1"
+    ]
+  },
+  {
+    "id": "invoice_002",
+    "question": "When is the invoice due?",
+    "document_id": "sample_invoice_acme",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_invoice_acme:table:0"
+    ]
+  },
+  {
+    "id": "invoice_003",
+    "question": "What are the payment terms?",
+    "document_id": "sample_invoice_acme",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_invoice_acme:table:0"
+    ]
+  },
+  {
+    "id": "invoice_004",
+    "question": "How much does the calibration service cost?",
+    "document_id": "sample_invoice_acme",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_invoice_acme:table:1"
+    ]
+  },
+  {
+    "id": "invoice_005",
+    "question": "What invoice number should be referenced when submitting payment?",
+    "document_id": "sample_invoice_acme",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_invoice_acme:paragraph:2",
+      "sample_invoice_acme:table:0"
+    ]
+  },
+
+  {
+    "id": "nda_001",
+    "question": "When does the non-disclosure agreement take effect?",
+    "document_id": "sample_non_disclosure_agreement",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_non_disclosure_agreement:paragraph:1"
+    ]
+  },
+  {
+    "id": "nda_002",
+    "question": "How long does the agreement remain in effect?",
+    "document_id": "sample_non_disclosure_agreement",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_non_disclosure_agreement:paragraph:5"
+    ]
+  },
+  {
+    "id": "nda_003",
+    "question": "What information is considered confidential?",
+    "document_id": "sample_non_disclosure_agreement",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_non_disclosure_agreement:paragraph:3"
+    ]
+  },
+  {
+    "id": "nda_004",
+    "question": "For what purpose may the receiving party use confidential information?",
+    "document_id": "sample_non_disclosure_agreement",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_non_disclosure_agreement:paragraph:7"
+    ]
+  },
+  {
+    "id": "nda_005",
+    "question": "Which state's laws govern the agreement?",
+    "document_id": "sample_non_disclosure_agreement",
+    "page_number": 2,
+    "relevant_node_ids": [
+      "sample_non_disclosure_agreement:paragraph:10"
+    ]
+  },
+  {
+    "id": "nda_006",
+    "question": "How quickly must confidential materials be returned or destroyed?",
+    "document_id": "sample_non_disclosure_agreement",
+    "page_number": 2,
+    "relevant_node_ids": [
+      "sample_non_disclosure_agreement:paragraph:12"
+    ]
+  },
+
+  {
+    "id": "revenue_001",
+    "question": "Which region generated the highest revenue in Q2 2026?",
+    "document_id": "sample_quarterly_revenue_report",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_quarterly_revenue_report:paragraph:4",
+      "sample_quarterly_revenue_report:table:0"
+    ]
+  },
+  {
+    "id": "revenue_002",
+    "question": "What was North Region's Q2 revenue?",
+    "document_id": "sample_quarterly_revenue_report",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_quarterly_revenue_report:table:0",
+      "sample_quarterly_revenue_report:paragraph:4"
+    ]
+  },
+  {
+    "id": "revenue_003",
+    "question": "What was the growth rate for South Region?",
+    "document_id": "sample_quarterly_revenue_report",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_quarterly_revenue_report:table:0"
+    ]
+  },
+  {
+    "id": "revenue_004",
+    "question": "Which region had the lowest growth rate?",
+    "document_id": "sample_quarterly_revenue_report",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_quarterly_revenue_report:table:0"
+    ]
+  },
+  {
+    "id": "revenue_005",
+    "question": "Who prepared the quarterly revenue report?",
+    "document_id": "sample_quarterly_revenue_report",
+    "page_number": 1,
+    "relevant_node_ids": [
+      "sample_quarterly_revenue_report:paragraph:1"
+    ]
+  }
+]

@@ -17,3 +17,9 @@ outputs/answers/*
 !outputs/answers/.gitkeep
 # Generated structured document outputs
 data/structured/*.json
+# Detailed evaluation artifacts
+outputs/evaluation/*.json
+outputs/evaluation/*_examples.csv
+
+# Keep compact experiment summaries
+!outputs/evaluation/*_summary.csv

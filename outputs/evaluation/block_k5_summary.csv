@@ -1,0 +1,2 @@
+created_at,retriever,retriever_name,evaluation_level,top_k,example_count,hit_rate_at_k,recall_at_k,mrr_at_k,average_latency_ms,model
+2026-08-08T22:05:17.153394-06:00,block,semantic_block_retriever,node,5,20,0.9,0.9,0.6766666666666666,23.257424985058606,sentence-transformers/all-MiniLM-L6-v2
