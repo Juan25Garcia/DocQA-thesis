@@ -1,0 +1,10 @@
+{
+  "development": [
+    "sample_business_expense_voucher",
+    "sample_non_disclosure_agreement",
+    "sample_quarterly_revenue_report"
+  ],
+  "test": [
+    "sample_invoice_acme"
+  ]
+}
