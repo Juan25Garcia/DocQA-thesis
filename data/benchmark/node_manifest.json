@@ -1,0 +1,53 @@
+{
+  "sample_business_expense_voucher": [
+    "sample_business_expense_voucher:paragraph:2",
+    "sample_business_expense_voucher:section:0",
+    "sample_business_expense_voucher:section:1",
+    "sample_business_expense_voucher:table:0",
+    "sample_business_expense_voucher:table:1"
+  ],
+  "sample_invoice_acme": [
+    "sample_invoice_acme:paragraph:2",
+    "sample_invoice_acme:section:0",
+    "sample_invoice_acme:section:1",
+    "sample_invoice_acme:table:0",
+    "sample_invoice_acme:table:1"
+  ],
+  "sample_non_disclosure_agreement": [
+    "sample_non_disclosure_agreement:paragraph:1",
+    "sample_non_disclosure_agreement:paragraph:10",
+    "sample_non_disclosure_agreement:paragraph:12",
+    "sample_non_disclosure_agreement:paragraph:13",
+    "sample_non_disclosure_agreement:paragraph:3",
+    "sample_non_disclosure_agreement:paragraph:5",
+    "sample_non_disclosure_agreement:paragraph:7",
+    "sample_non_disclosure_agreement:section:0",
+    "sample_non_disclosure_agreement:section:11",
+    "sample_non_disclosure_agreement:section:2",
+    "sample_non_disclosure_agreement:section:4",
+    "sample_non_disclosure_agreement:section:6",
+    "sample_non_disclosure_agreement:section:8",
+    "sample_non_disclosure_agreement:section:9"
+  ],
+  "sample_quarterly_revenue_report": [
+    "sample_quarterly_revenue_report:paragraph:1",
+    "sample_quarterly_revenue_report:paragraph:10",
+    "sample_quarterly_revenue_report:paragraph:11",
+    "sample_quarterly_revenue_report:paragraph:12",
+    "sample_quarterly_revenue_report:paragraph:13",
+    "sample_quarterly_revenue_report:paragraph:14",
+    "sample_quarterly_revenue_report:paragraph:15",
+    "sample_quarterly_revenue_report:paragraph:17",
+    "sample_quarterly_revenue_report:paragraph:2",
+    "sample_quarterly_revenue_report:paragraph:4",
+    "sample_quarterly_revenue_report:paragraph:6",
+    "sample_quarterly_revenue_report:paragraph:7",
+    "sample_quarterly_revenue_report:paragraph:8",
+    "sample_quarterly_revenue_report:paragraph:9",
+    "sample_quarterly_revenue_report:section:0",
+    "sample_quarterly_revenue_report:section:16",
+    "sample_quarterly_revenue_report:section:3",
+    "sample_quarterly_revenue_report:section:5",
+    "sample_quarterly_revenue_report:table:0"
+  ]
+}
