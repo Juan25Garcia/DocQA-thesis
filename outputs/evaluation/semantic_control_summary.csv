@@ -1,0 +1,5 @@
+similarity_bin,same_page_errors,same_page_total,different_page_errors,different_page_total,difference_pp
+"(-0.0839, 0.0977]",0,2,0,208,0.0
+"(0.0977, 0.181]",0,17,0,192,0.0
+"(0.181, 0.277]",4,32,3,177,10.805084745762713
+"(0.277, 0.745]",10,45,7,164,17.95392953929539
