@@ -1,5 +1,5 @@
 
-"""Tests for retrievable node manifest generation."""
+"""Tests for retrievable node manifest generation. """
 
 from types import SimpleNamespace
 
